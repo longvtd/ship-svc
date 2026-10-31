@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- @name : 상품 공통 -->
+<mapper namespace="O.ItemCmm">
+
+	<sql id="itemColumns">
+		i.item_no
+		, i.item_mdl_cd
+		, i.item_kd_cd
+		, i.last_org_cd
+	</sql>
+
+	<!-- @name : 상품 기본 조회 (same-namespace include by short id) -->
+	<select id="selectItemM" resultType="lowerCamelCaseMap" parameterType="map">
+		select <include refid="itemColumns" />
+		from tb_demo_item_m i
+		where i.item_no = #{itemNo}
+	</select>
+
+	<!-- @name : 상품 모델 목록 -->
+	<select id="selectItemMdlList" resultType="lowerCamelCaseMap" parameterType="map">
+		select m.item_mdl_cd
+			, m.item_mdl_nm
+		from tb_demo_item_mdl_m m
+		where m.use_yn = 'Y'
+		order by m.item_mdl_nm
+	</select>
+
+	<!-- @name : 상품 이력 등록 -->
+	<insert id="insertItemHst" parameterType="map">
+		insert into tb_demo_item_hst_h (
+			item_no
+			, hst_seq
+			, item_kd_cd
+		)
+		select i.item_no
+			, (select ifnull(max(h.hst_seq), 0) + 1 from tb_demo_item_hst_h h where h.item_no = i.item_no)
+			, i.item_kd_cd
+		from tb_demo_item_m i
+		where i.item_no = #{itemNo}
+	</insert>
+
+	<!-- @name : 상태별 상품 조회 (${} dynamic order by) -->
+	<select id="selectItemByStatus" resultType="lowerCamelCaseMap" parameterType="map">
+		select i.item_no, i.item_kd_cd
+		from tb_demo_item_m i
+		where i.item_stus_cd = #{itemStusCd}
+		order by ${sortColumn}
+	</select>
+
+</mapper>

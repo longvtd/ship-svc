@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- @name : 배송 주문 관리 -->
+<mapper namespace="O.ShipOrderM">
+
+	<!-- @name : DEMO001P 주문 출고 대상 조회 (derived table + if chain) -->
+	<select id="selectOrderTrgtList" resultType="com.demo.ship.order.dto.ShipOrderTrgtDTO"
+		parameterType="com.demo.ship.order.dto.ShipTrgtSrchPageDTO">
+		select t.*
+		from (
+			select a.order_reg_no
+				, a.item_no
+				, kd.cmm_cd_nm as ship_kd_nm
+				, mdl.item_mdl_nm
+				, a.cnfm_qt
+			from tb_demo_order_d a
+			left outer join tb_demo_cmm_code_c kd
+				on a.ship_kd_cd = kd.cmm_cd
+				and 'SHIP_KD_CD' = kd.cmm_grp_cd
+			join tb_demo_item_mdl_m mdl
+				on a.item_mdl_cd = mdl.item_mdl_cd
+			where 1=1
+			<if test='makerCd != null and makerCd != ""'>
+				and a.maker_cd = #{makerCd}
+			</if>
+			<if test='itemMdlCd != null and itemMdlCd != ""'>
+				and a.item_mdl_cd = #{itemMdlCd}
+			</if>
+			<if test='shipDivsCd != null and shipDivsCd != "" and shipDivsCd == "N" '>
+				and ifnull(a.ship_divs_cd,'00') != '03'
+			</if>
+		) t
+		where t.cnfm_qt > 0
+		order by t.order_reg_no
+		/*[ship-svc] /maria/order/ship/sql-O.ShipOrderM.xml-selectOrderTrgtList OWNER:dev01, 개발자 */
+	</select>
+
+	<!-- @name : DEMO001P 주문 출고 대상 건수 -->
+	<select id="countOrderTrgtList" resultType="long"
+		parameterType="com.demo.ship.order.dto.ShipTrgtSrchPageDTO">
+		select count(*)
+		from tb_demo_order_d a
+		inner join tb_demo_item_mdl_m mdl on a.item_mdl_cd = mdl.item_mdl_cd
+		<where>
+			<if test='makerCd != null and makerCd != ""'>
+				and a.maker_cd = #{makerCd}
+			</if>
+		</where>
+	</select>
+
+	<!-- @name : DEMO002P 주문 요청 상세 조회 (newline join, comma join, select-list subquery) -->
+	<select id="selectOrderRqstD" resultType="com.demo.ship.order.dto.ShipOrderRqstDDTO"
+		parameterType="com.demo.ship.order.dto.ShipOrderListDTO">
+		select d.order_reg_no -- 주문등록번호
+			, ( select date_format( rd.data_inpt_dttm,'%Y-%m-%d') from tb_demo_ship_rqst_d rd
+				where rd.item_no = d.item_no
+				and rd.rqst_yn = 'Y' limit 1 ) as last_inpt_dt
+			, d.item_no
+			, ad.center_cd
+			, t.last_org_cd
+			, case when ad.center_cd != ifnull(t.last_org_cd, 'N') then 'Y'
+					else 'N'
+					end as org_change
+			, t.item_kd_cd
+		from tb_demo_order_d d
+		left outer join
+		tb_demo_item_m t
+		on d.item_no = t.item_no
+		left outer join tb_demo_ship_base_m g
+		on g.item_mdl_cd = t.item_mdl_cd
+		, tb_demo_order_assg_d ad
+		where 1 = 1
+		and d.order_reg_no = #{orderRegNo}
+		and d.order_reg_no = ad.order_reg_no
+		and d.order_assg_no = ad.order_assg_no
+		<if test='makerCd != null and makerCd != ""'>
+			and t.posn_org_cd = #{makerCd}
+		</if>
+		order by
+		d.order_reg_sno -- 주문등록순번
+		/*[ship-svc] /maria/order/ship/sql-O.ShipOrderM.xml-selectOrderRqstD OWNER:dev01, 개발자 */
+	</select>
+
+	<!-- @name : DEMO003M 주문 승인 상태 변경 (cross-namespace include) -->
+	<update id="updateOrderAprvD" parameterType="com.demo.ship.order.entity.ShipOrderRqstDEntity">
+		update tb_demo_order_d
+		set order_stus_cd = #{orderStusCd}
+		<include refid="O.Common.UPDATE_VALUES" />
+		where order_reg_no = #{orderRegNo}
+		and order_reg_sno = #{orderRegSno}
+	</update>
+
+	<!-- @name : DEMO004M 주문 일괄 변경 (set + choose + CDATA) -->
+	<update id="updateOrderBatch" parameterType="map">
+		update tb_demo_order_d
+		<set>
+			<choose>
+				<when test='orderStusCd != null'>
+					order_stus_cd = #{orderStusCd},
+				</when>
+				<otherwise>
+					order_stus_cd = '00',
+				</otherwise>
+			</choose>
+			upd_dttm = now()
+		</set>
+		where order_reg_no = #{orderRegNo}
+		<![CDATA[
+		and reg_dttm < now()
+		]]>
+	</update>
+
+	<!-- @name : DEMO005M 배송 요청 등록 (insert ... select + include) -->
+	<insert id="insertShipRqstD" parameterType="com.demo.ship.order.dto.ShipOrderListDTO">
+		insert into tb_demo_ship_rqst_d (
+			rqst_no
+			, item_no
+			, rqst_yn
+			<include refid="O.Common.INSERT_COLUMNS" />
+		)
+		select #{rqstNo}
+			, d.item_no
+			, 'Y'
+			<include refid="O.Common.INSERT_VALUES" />
+		from tb_demo_order_d d
+		where d.order_reg_no = #{orderRegNo}
+	</insert>
+
+	<!-- @name : DEMO006M 배정 삭제 (foreach) -->
+	<delete id="deleteOrderAssgD" parameterType="map">
+		delete from tb_demo_order_assg_d
+		where order_reg_no = #{orderRegNo}
+		and order_assg_no in
+		<foreach collection="assgNoList" item="assgNo" open="(" separator="," close=")">
+			#{assgNo}
+		</foreach>
+	</delete>
+
+	<!-- @name : DEMO007P 존재 여부 확인 (EXISTS, IN-subquery, schema, backticks, upper-case) -->
+	<select id="selectExistsCheck" resultType="int" parameterType="map">
+		SELECT COUNT(1)
+		FROM `tb_demo_order_d` o
+		INNER JOIN demo_db.tb_demo_item_m im ON o.item_no = im.item_no
+		WHERE EXISTS (
+			SELECT 1 FROM tb_demo_ship_base_m sb
+			WHERE sb.item_mdl_cd = im.item_mdl_cd
+		)
+		AND o.ship_kd_cd IN (
+			SELECT cc.cmm_cd FROM tb_demo_cmm_code_c cc WHERE cc.cmm_grp_cd = 'SHIP_KD_CD'
+		)
+		AND o.order_reg_no = #{orderRegNo}
+	</select>
+
+</mapper>

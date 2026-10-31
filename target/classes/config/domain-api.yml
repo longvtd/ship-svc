@@ -1,0 +1,12 @@
+# Synthetic outbound APIs between domains.
+domain-api:
+  dmau-svc:
+    userInfo-cache-001:
+      method: GET
+      path: /userInfo/cache/v1/{userId}
+      description: 사용자 캐시 조회
+  dmpr-svc:
+    itemPrice-select-001:
+      method: POST
+      path: /itemPrice/select/v1
+      description: 상품 가격 조회

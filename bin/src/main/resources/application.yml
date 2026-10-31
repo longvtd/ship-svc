@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ship-svc
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://localhost:3306/demo_db
+    username: demo
+    password: demo
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: ship-svc
+
+# The mybatis block is intentionally NESTED under a parent key (not top-level),
+# the same shape as the framework configuration.
+wafful:
+  persistence:
+    mybatis:
+      enabled: true
+      config-location: sql/configuration.xml
+      mapper-location: classpath:/sql/maria/**/sql-*.xml
+
+logging:
+  level:
+    com.demo: DEBUG
