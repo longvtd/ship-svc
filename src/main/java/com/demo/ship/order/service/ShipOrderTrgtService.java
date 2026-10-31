@@ -2,10 +2,8 @@ package com.demo.ship.order.service;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
-
 import com.demo.ship.common.constant.ShipQueryIds;
 import com.demo.ship.external.client.ItemPriceClient;
 import com.demo.ship.order.dto.ShipOrderTrgtDTO;
@@ -42,6 +40,7 @@ public class ShipOrderTrgtService {
     }
 
     public boolean existsOrder(String orderRegNo) {
+    	if(orderRegNo == null) return false;
         Map<String, Object> param = new HashMap<>();
         param.put("orderRegNo", orderRegNo);
         Integer cnt = comDao.selectOne(ShipQueryIds.SELECT_EXISTS_CHECK, param);
