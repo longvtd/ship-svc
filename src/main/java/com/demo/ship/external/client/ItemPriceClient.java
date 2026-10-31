@@ -4,7 +4,8 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
-import com.lguplus.wafful.framework.rest.ApimRestTemplate;
+import com.lguplus.wafful.framework.api.rest.ApimRestTemplate;
+
 
 import lombok.RequiredArgsConstructor;
 
@@ -19,6 +20,6 @@ public class ItemPriceClient {
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> selectItemPrice(Map<String, Object> request) {
-        return apimRestTemplate.postForObject("{@dmpr-svc.itemPrice-select-001}", request, Map.class);
+        return apimRestTemplate.post("{@dmpr-svc.itemPrice-select-001}", request, Map.class);
     }
 }

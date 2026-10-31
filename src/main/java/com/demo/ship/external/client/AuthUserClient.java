@@ -4,7 +4,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
-import com.lguplus.wafful.framework.rest.WaffulRestTemplete;
+import com.lguplus.wafful.framework.api.rest.WaffulRestTemplate;
 
 import lombok.RequiredArgsConstructor;
 
@@ -18,10 +18,11 @@ public class AuthUserClient {
 
     private static final String USER_INFO_CACHE_URL = "{@dmau-svc.userInfo-cache-001}";
 
-    private final WaffulRestTemplete waffulRestTemplete;
+    private final WaffulRestTemplate waffulRestTemplate;
+
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> getUserInfo(String userId) {
-        return waffulRestTemplete.getForObject(USER_INFO_CACHE_URL, Map.class, userId);
+        return waffulRestTemplate.get(USER_INFO_CACHE_URL, Map.class, userId);
     }
 }

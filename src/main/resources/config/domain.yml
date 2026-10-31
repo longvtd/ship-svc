@@ -1,11 +1,12 @@
 # Synthetic domains. Placeholder rule in Java: "{@<domain_id>.<url_id>}".
 # NOTE: keep the same YAML shape as the original sample; adjust keys if your ImpactScope loader expects another shape.
-domain:
+services:
+## 인증공통데모
   dmau-svc:
     domainId: DMAU-SVC
-    name: 인증공통데모
+    name: 
     url: http://localhost:18081
+##가격공통데모
   dmpr-svc:
     domainId: DMPR-SVC
-    name: 가격공통데모
     url: http://localhost:18082
